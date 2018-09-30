@@ -23,6 +23,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.IO;
 using System.Windows;
 using System.Windows.Forms;
@@ -527,6 +528,57 @@ namespace FFXIV_TexTools2
             Customize customize = new Customize();
             customize.Owner = this;
             customize.Show();
+        }
+
+        private void BatchExport_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (var category in mViewModel.Category[0].Children)
+            {
+                foreach (var item in category.Children)
+                {
+                    var modelViewModel = mViewModel.ModelVM;
+                    mViewModel.TextureVM.UpdateTexture(item.ItemData, category.Name);
+                    mViewModel.ModelVM.UpdateModel(item.ItemData, category.Name);
+
+                    var modelDir = $"m{item.ItemData.PrimaryModelID}v{item.ItemData.PrimaryModelVariant}";
+                    BatchExportCore(modelViewModel, modelDir);
+
+                    if (item.ItemData.SecondaryModelID != null)
+                    {
+                        modelDir = $"m{item.ItemData.SecondaryModelID}v{item.ItemData.SecondaryModelVariant}";
+                        modelViewModel.SelectedPart = modelViewModel.PartComboBox[1];
+
+                        BatchExportCore(modelViewModel, modelDir);
+                    }
+                }
+            }
+        }
+
+        private void BatchExportCore(ModelViewModel modelViewModel, string modelDir)
+        {
+            var basePath = Path.Combine(Properties.Settings.Default.Save_Directory, modelDir);
+            if (Directory.Exists(basePath))
+                return;
+
+            Directory.CreateDirectory(basePath);
+
+            for (var i = 0; i < modelViewModel.MeshList.Count; i++)
+            {
+                var path = $"{basePath}/r{modelViewModel.SelectedRace.ID}_{i}";
+                IO.SaveModel.Save(path, modelViewModel.MeshData[i], modelViewModel.MeshList[i].OBJFileData);
+            }
+
+            // When the model has both male and female, export information for both.
+            var femaleRace = modelViewModel.RaceComboBox.FirstOrDefault(r => r.ID != modelViewModel.SelectedRace.ID && r.Name.Contains("Female"));
+            if (femaleRace != null)
+            {
+                modelViewModel.SelectedRace = femaleRace;
+                for (var i = 0; i < modelViewModel.MeshList.Count; i++)
+                {
+                    var path = $"{basePath}/r{modelViewModel.SelectedRace.ID}_{i}";
+                    IO.SaveModel.Save(path, modelViewModel.MeshData[i], modelViewModel.MeshList[i].OBJFileData);
+                }
+            }
         }
     }
 }

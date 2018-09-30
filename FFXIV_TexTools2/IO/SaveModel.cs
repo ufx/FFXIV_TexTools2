@@ -54,137 +54,48 @@ namespace FFXIV_TexTools2.IO
             fullSkel.Clear();
             fullSkelnum.Clear();
 
-            Directory.CreateDirectory(Properties.Settings.Default.Save_Directory + "/" + selectedCategory + "/" + selectedItemName + "/3D/");
+            var baseFileName = Path.Combine(Properties.Settings.Default.Save_Directory, selectedCategory, selectedItemName, "3D");
+            Directory.CreateDirectory(baseFileName);
+
+            baseFileName += "/" + modelName;
 
             if (!selectedMesh.Equals(Strings.All))
             {
                 int meshNum = int.Parse(selectedMesh);
-
-                File.WriteAllLines(Properties.Settings.Default.Save_Directory + "/" + selectedCategory + "/" + selectedItemName + "/3D/" + modelName + "_" + meshNum + ".obj", meshList[meshNum].OBJFileData);
-
-                var saveDir = Properties.Settings.Default.Save_Directory + "/" + selectedCategory + "/" + selectedItemName + "/3D/" + modelName + "_" + meshNum + "_Diffuse.bmp";
-
-                using (var fileStream = new FileStream(saveDir, FileMode.Create))
-                {
-                    BitmapEncoder encoder = new BmpBitmapEncoder();
-                    encoder.Frames.Add(BitmapFrame.Create(meshData[meshNum].Diffuse));
-                    encoder.Save(fileStream);
-                }
-
-                saveDir = Properties.Settings.Default.Save_Directory + "/" + selectedCategory + "/" + selectedItemName + "/3D/" + modelName + "_" + meshNum + "_Normal.bmp";
-
-                using (var fileStream = new FileStream(saveDir, FileMode.Create))
-                {
-                    BitmapEncoder encoder = new BmpBitmapEncoder();
-                    encoder.Frames.Add(BitmapFrame.Create(meshData[meshNum].Normal));
-                    encoder.Save(fileStream);
-                }
-
-
-                if (meshData[meshNum].Specular != null)
-                {
-                    saveDir = Properties.Settings.Default.Save_Directory + "/" + selectedCategory + "/" + selectedItemName + "/3D/" + modelName + "_" + meshNum + "_Specular.bmp";
-
-                    using (var fileStream = new FileStream(saveDir, FileMode.Create))
-                    {
-                        BitmapEncoder encoder = new BmpBitmapEncoder();
-                        encoder.Frames.Add(BitmapFrame.Create(meshData[meshNum].Specular));
-                        encoder.Save(fileStream);
-                    }
-                }
-
-
-                if (meshData[meshNum].Alpha != null)
-                {
-                    saveDir = Properties.Settings.Default.Save_Directory + "/" + selectedCategory + "/" + selectedItemName + "/3D/" + modelName + "_" + meshNum + "_Alpha.bmp";
-
-                    using (var fileStream = new FileStream(saveDir, FileMode.Create))
-                    {
-                        BitmapEncoder encoder = new BmpBitmapEncoder();
-                        encoder.Frames.Add(BitmapFrame.Create(meshData[meshNum].Alpha));
-                        encoder.Save(fileStream);
-                    }
-                }
-
-                if (meshData[meshNum].Emissive != null)
-                {
-                    saveDir = Properties.Settings.Default.Save_Directory + "/" + selectedCategory + "/" + selectedItemName + "/3D/" + modelName + "_" + meshNum + "_Emissive.bmp";
-
-                    using (var fileStream = new FileStream(saveDir, FileMode.Create))
-                    {
-                        BitmapEncoder encoder = new BmpBitmapEncoder();
-                        encoder.Frames.Add(BitmapFrame.Create(meshData[meshNum].Emissive));
-                        encoder.Save(fileStream);
-                    }
-                }
+                Save(baseFileName + "_" + meshNum, meshData[meshNum], meshList[meshNum].OBJFileData);
             }
             else
             {
                 for (int i = 0; i < meshList.Count; i++)
                 {
-
-                    File.WriteAllLines(Properties.Settings.Default.Save_Directory + "/" + selectedCategory + "/" + selectedItemName + "/3D/" + modelName + "_" + i + ".obj", meshList[i].OBJFileData);
-
-                    var saveDir = Properties.Settings.Default.Save_Directory + "/" + selectedCategory + "/" + selectedItemName + "/3D/" + modelName + "_" + i + "_Diffuse.bmp";
-
-                    using (var fileStream = new FileStream(saveDir, FileMode.Create))
-                    {
-                        BitmapEncoder encoder = new BmpBitmapEncoder();
-                        encoder.Frames.Add(BitmapFrame.Create(meshData[i].Diffuse));
-                        encoder.Save(fileStream);
-                    }
-
-                    saveDir = Properties.Settings.Default.Save_Directory + "/" + selectedCategory + "/" + selectedItemName + "/3D/" + modelName + "_" + i + "_Normal.bmp";
-
-                    using (var fileStream = new FileStream(saveDir, FileMode.Create))
-                    {
-                        BitmapEncoder encoder = new BmpBitmapEncoder();
-                        encoder.Frames.Add(BitmapFrame.Create(meshData[i].Normal));
-                        encoder.Save(fileStream);
-                    }
-
-
-                    if (meshData[i].Specular != null)
-                    {
-                        saveDir = Properties.Settings.Default.Save_Directory + "/" + selectedCategory + "/" + selectedItemName + "/3D/" + modelName + "_" + i + "_Specular.bmp";
-
-                        using (var fileStream = new FileStream(saveDir, FileMode.Create))
-                        {
-                            BitmapEncoder encoder = new BmpBitmapEncoder();
-                            encoder.Frames.Add(BitmapFrame.Create(meshData[i].Specular));
-                            encoder.Save(fileStream);
-                        }
-                    }
-
-                    if (meshData[i].Alpha != null)
-                    {
-                        saveDir = Properties.Settings.Default.Save_Directory + "/" + selectedCategory + "/" + selectedItemName + "/3D/" + modelName + "_" + i + "_Alpha.bmp";
-
-                        using (var fileStream = new FileStream(saveDir, FileMode.Create))
-                        {
-                            BitmapEncoder encoder = new BmpBitmapEncoder();
-                            encoder.Frames.Add(BitmapFrame.Create(meshData[i].Alpha));
-                            encoder.Save(fileStream);
-                        }
-                    }
-
-                    if (meshData[i].Emissive != null)
-                    {
-                        saveDir = Properties.Settings.Default.Save_Directory + "/" + selectedCategory + "/" + selectedItemName + "/3D/" + modelName + "_" + i + "_Emissive.bmp";
-
-                        using (var fileStream = new FileStream(saveDir, FileMode.Create))
-                        {
-                            BitmapEncoder encoder = new BmpBitmapEncoder();
-                            encoder.Frames.Add(BitmapFrame.Create(meshData[i].Emissive));
-                            encoder.Save(fileStream);
-                        }
-                    }
-
+                    Save(baseFileName + "_" + i, meshData[i], meshList[i].OBJFileData);
                 }
             }
-
         }
 
+        public static void Save(string baseFileName, MDLTEXData mdlTexData, string[] objData)
+        {
+            File.WriteAllLines(baseFileName + ".obj", objData);
+
+            Write(baseFileName + "_Diffuse", new PngBitmapEncoder(), mdlTexData.Diffuse);
+            Write(baseFileName + "_Normal", new PngBitmapEncoder(), mdlTexData.Normal);
+            Write(baseFileName + "_Specular", new PngBitmapEncoder(), mdlTexData.Specular);
+            Write(baseFileName + "_Alpha", new PngBitmapEncoder(), mdlTexData.Alpha);
+            Write(baseFileName + "_Emissive", new PngBitmapEncoder(), mdlTexData.Emissive);
+        }
+
+        private static void Write(string fileName, BitmapEncoder encoder, BitmapSource source)
+        {
+            if (source == null)
+                return;
+
+            fileName += encoder.CodecInfo.FileExtensions;
+            using (var fileStream = new FileStream(fileName, FileMode.Create))
+            {
+                encoder.Frames.Add(BitmapFrame.Create(source));
+                encoder.Save(fileStream);
+            }
+        }
 
         public static bool SaveCollada(string selectedCategory, string modelName, string selectedItemName, List<MDLTEXData> meshData, List<ModelMeshData> meshList, ModelData modelData)
         {

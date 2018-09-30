@@ -85,6 +85,10 @@ namespace FFXIV_TexTools2.ViewModel
 
         public Composite3DViewModel CompositeVM { get { return CVM; } set { CVM = value; NotifyPropertyChanged("CompositeVM"); } }
 
+        public string ModelName => modelName;
+        public List<MDLTEXData> MeshData => meshData;
+        public List<ModelMeshData> MeshList => meshList;
+
         public ModelViewModel()
         {
             CompositeVM = new Composite3DViewModel();

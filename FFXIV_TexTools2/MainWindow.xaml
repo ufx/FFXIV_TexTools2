@@ -96,6 +96,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="30"/>
                         <RowDefinition Height="257*"/>
+                        <RowDefinition Height="30"/>
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0" Margin="0,0,2,0">
                         <TextBox x:Name="searchBox" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" TextWrapping="NoWrap" TextChanged="TextBox_TextChanged" Padding="5" Margin="0,0,-2,0" >
@@ -129,6 +130,7 @@
                             </TreeView.Resources>
                         </TreeView>
                     </Grid>
+                    <Button Grid.Row="2" Click="BatchExport_Click">Batch Export</Button>
                 </Grid>
             </GroupBox>
             <GridSplitter x:Name="gridSplitter" Grid.Column="1" Width="5" HorizontalAlignment="Center" Margin="0,52,0,49"/>
