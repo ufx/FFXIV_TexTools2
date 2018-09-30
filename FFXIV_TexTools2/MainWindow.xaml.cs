@@ -536,30 +536,40 @@ namespace FFXIV_TexTools2
             {
                 foreach (var item in category.Children)
                 {
+                    var primaryModelDir = $"m{item.ItemData.PrimaryModelID}v{item.ItemData.PrimaryModelVariant}";
+                    var primaryBasePath = Path.Combine(Properties.Settings.Default.Save_Directory, primaryModelDir);
+                    var primaryExists = Directory.Exists(primaryBasePath);
+
+                    string secondaryModelDir = null;
+                    string secondaryBasePath = null;
+                    var secondaryExists = true;
+                    if (item.ItemData.SecondaryModelID != null)
+                    {
+                        secondaryModelDir = $"m{item.ItemData.SecondaryModelID}v{item.ItemData.SecondaryModelVariant}";
+                        secondaryBasePath = Path.Combine(Properties.Settings.Default.Save_Directory, secondaryModelDir);
+                        secondaryExists = Directory.Exists(secondaryBasePath);
+                    }
+
+                    if (primaryExists && secondaryExists)
+                        continue;
+
                     var modelViewModel = mViewModel.ModelVM;
                     mViewModel.TextureVM.UpdateTexture(item.ItemData, category.Name);
                     mViewModel.ModelVM.UpdateModel(item.ItemData, category.Name);
 
-                    var modelDir = $"m{item.ItemData.PrimaryModelID}v{item.ItemData.PrimaryModelVariant}";
-                    BatchExportCore(modelViewModel, modelDir);
+                    if (!primaryExists)
+                        BatchExportCore(modelViewModel, primaryBasePath);
 
-                    if (item.ItemData.SecondaryModelID != null)
-                    {
-                        modelDir = $"m{item.ItemData.SecondaryModelID}v{item.ItemData.SecondaryModelVariant}";
+                    if (!secondaryExists) {
                         modelViewModel.SelectedPart = modelViewModel.PartComboBox[1];
-
-                        BatchExportCore(modelViewModel, modelDir);
+                        BatchExportCore(modelViewModel, secondaryBasePath);
                     }
                 }
             }
         }
 
-        private void BatchExportCore(ModelViewModel modelViewModel, string modelDir)
+        private void BatchExportCore(ModelViewModel modelViewModel, string basePath)
         {
-            var basePath = Path.Combine(Properties.Settings.Default.Save_Directory, modelDir);
-            if (Directory.Exists(basePath))
-                return;
-
             Directory.CreateDirectory(basePath);
 
             for (var i = 0; i < modelViewModel.MeshList.Count; i++)
