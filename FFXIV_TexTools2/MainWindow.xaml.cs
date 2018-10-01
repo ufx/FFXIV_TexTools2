@@ -537,7 +537,7 @@ namespace FFXIV_TexTools2
                 foreach (var item in category.Children)
                 {
                     var primaryModelDir = $"m{item.ItemData.PrimaryModelID}v{item.ItemData.PrimaryModelVariant}";
-                    var primaryBasePath = Path.Combine(Properties.Settings.Default.Save_Directory, primaryModelDir);
+                    var primaryBasePath = Path.Combine(Properties.Settings.Default.Save_Directory, category.Name, primaryModelDir);
                     var primaryExists = Directory.Exists(primaryBasePath);
 
                     string secondaryModelDir = null;
@@ -546,23 +546,22 @@ namespace FFXIV_TexTools2
                     if (item.ItemData.SecondaryModelID != null)
                     {
                         secondaryModelDir = $"m{item.ItemData.SecondaryModelID}v{item.ItemData.SecondaryModelVariant}";
-                        secondaryBasePath = Path.Combine(Properties.Settings.Default.Save_Directory, secondaryModelDir);
+                        secondaryBasePath = Path.Combine(Properties.Settings.Default.Save_Directory, category.Name, secondaryModelDir);
                         secondaryExists = Directory.Exists(secondaryBasePath);
                     }
 
                     if (primaryExists && secondaryExists)
                         continue;
 
-                    var modelViewModel = mViewModel.ModelVM;
                     mViewModel.TextureVM.UpdateTexture(item.ItemData, category.Name);
                     mViewModel.ModelVM.UpdateModel(item.ItemData, category.Name);
 
                     if (!primaryExists)
-                        BatchExportCore(modelViewModel, primaryBasePath);
+                        BatchExportCore(mViewModel.ModelVM, primaryBasePath);
 
                     if (!secondaryExists) {
-                        modelViewModel.SelectedPart = modelViewModel.PartComboBox[1];
-                        BatchExportCore(modelViewModel, secondaryBasePath);
+                        mViewModel.ModelVM.SelectedPart = mViewModel.ModelVM.PartComboBox[1];
+                        BatchExportCore(mViewModel.ModelVM, secondaryBasePath);
                     }
                 }
             }
