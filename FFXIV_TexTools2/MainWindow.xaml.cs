@@ -532,6 +532,8 @@ namespace FFXIV_TexTools2
 
         private void BatchExport_Click(object sender, RoutedEventArgs e)
         {
+            mViewModel.ModelVM.DisableCompositeView();
+
             foreach (var category in mViewModel.Category[0].Children)
             {
                 foreach (var item in category.Children)
@@ -553,22 +555,32 @@ namespace FFXIV_TexTools2
                     if (primaryExists && secondaryExists)
                         continue;
 
-                    mViewModel.TextureVM.UpdateTexture(item.ItemData, category.Name);
-                    mViewModel.ModelVM.UpdateModel(item.ItemData, category.Name);
+                    try
+                    {
+                        mViewModel.TextureVM.UpdateTexture(item.ItemData, category.Name);
+                        mViewModel.ModelVM.UpdateModel(item.ItemData, category.Name);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Skipping {item.Name} export.  Reason: {ex.Message}");
+                        continue;
+                    }
 
                     if (!primaryExists)
-                        BatchExportCore(mViewModel.ModelVM, primaryBasePath);
+                        BatchExportCore(mViewModel.ModelVM, primaryBasePath, item);
 
                     if (!secondaryExists) {
                         mViewModel.ModelVM.SelectedPart = mViewModel.ModelVM.PartComboBox[1];
-                        BatchExportCore(mViewModel.ModelVM, secondaryBasePath);
+                        BatchExportCore(mViewModel.ModelVM, secondaryBasePath, item);
                     }
                 }
             }
         }
 
-        private void BatchExportCore(ModelViewModel modelViewModel, string basePath)
+        private void BatchExportCore(ModelViewModel modelViewModel, string basePath, CategoryViewModel item)
         {
+            Debug.WriteLine($"Exporting {item.Name}.");
+
             Directory.CreateDirectory(basePath);
 
             for (var i = 0; i < modelViewModel.MeshList.Count; i++)

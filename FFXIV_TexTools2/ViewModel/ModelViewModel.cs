@@ -107,7 +107,8 @@ namespace FFXIV_TexTools2.ViewModel
                 return;
             }
 
-            CompositeVM.Dispose();
+            if (CompositeVM != null)
+                CompositeVM.Dispose();
             disposing = true;
             cbi.Clear();
             bool itemChanged = false;
@@ -1156,23 +1157,26 @@ namespace FFXIV_TexTools2.ViewModel
 
 
                     // Preserve Camera settings before reset
-                    var lookDir = CompositeVM.Camera.LookDirection;
-                    var upDir = CompositeVM.Camera.UpDirection;
-                    var pos = CompositeVM.Camera.Position;
-
-
-                    // Reset 3d View for loading new model
-                    CompositeVM = new Composite3DViewModel();
-                    CompositeVM.UpdateModel(meshData, selectedItem);
-
-                    // Re-apply original camera settings 
-                    // Applies when camera is not in the default position 
-                    // and when within the same item category
-                    if (lookDir.Z != -5 && !newCat)
+                    if (CompositeVM != null)
                     {
-                        CompositeVM.Camera.LookDirection = lookDir;
-                        CompositeVM.Camera.UpDirection = upDir;
-                        CompositeVM.Camera.Position = pos;
+                        var lookDir = CompositeVM.Camera.LookDirection;
+                        var upDir = CompositeVM.Camera.UpDirection;
+                        var pos = CompositeVM.Camera.Position;
+
+
+                        // Reset 3d View for loading new model
+                        CompositeVM = new Composite3DViewModel();
+                        CompositeVM.UpdateModel(meshData, selectedItem);
+
+                        // Re-apply original camera settings 
+                        // Applies when camera is not in the default position 
+                        // and when within the same item category
+                        if (lookDir.Z != -5 && !newCat)
+                        {
+                            CompositeVM.Camera.LookDirection = lookDir;
+                            CompositeVM.Camera.UpDirection = upDir;
+                            CompositeVM.Camera.Position = pos;
+                        }
                     }
 
                     is3DLoaded = true;
@@ -1246,12 +1250,14 @@ namespace FFXIV_TexTools2.ViewModel
                         ActiveToggle = "Enable/Disable";
                     }
 
-                    ReflectionContent = "Reflection " + string.Format("{0:0.##}", CompositeVM.CurrentSS);
+                    if (CompositeVM != null)
+                        ReflectionContent = "Reflection " + string.Format("{0:0.##}", CompositeVM.CurrentSS);
 
                 }
                 else
                 {
-                    CompositeVM.Rendering(SelectedMesh.Name);
+                    if (CompositeVM != null)
+                        CompositeVM.Rendering(SelectedMesh.Name);
                 }
             } catch(Exception e)
             {
@@ -1441,6 +1447,15 @@ namespace FFXIV_TexTools2.ViewModel
 
             CompositeVM = new Composite3DViewModel();
             FlexibleMessageBox.Show("The 3D Model Viewer was unable to display the item.", "Model Viewer Error " + Info.appVersion, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
+        public void DisableCompositeView()
+        {
+            if (CompositeVM != null)
+            {
+                CompositeVM.Dispose();
+                CompositeVM = null;
+            }
         }
     }
 }
