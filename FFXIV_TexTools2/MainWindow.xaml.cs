@@ -533,6 +533,7 @@ namespace FFXIV_TexTools2
         private void BatchExport_Click(object sender, RoutedEventArgs e)
         {
             mViewModel.ModelVM.DisableCompositeView();
+            mViewModel.ModelVM.BubbleExceptions = true;
 
             foreach (var category in mViewModel.Category[0].Children)
             {
@@ -566,12 +567,25 @@ namespace FFXIV_TexTools2
                         continue;
                     }
 
-                    if (!primaryExists)
-                        BatchExportCore(mViewModel.ModelVM, primaryBasePath, item);
+                    try
+                    {
+                        if (!primaryExists)
+                            BatchExportCore(mViewModel.ModelVM, primaryBasePath, item);
 
-                    if (!secondaryExists) {
-                        mViewModel.ModelVM.SelectedPart = mViewModel.ModelVM.PartComboBox[1];
-                        BatchExportCore(mViewModel.ModelVM, secondaryBasePath, item);
+                        if (!secondaryExists)
+                        {
+                            mViewModel.ModelVM.SelectedPart = mViewModel.ModelVM.PartComboBox[1];
+                            BatchExportCore(mViewModel.ModelVM, secondaryBasePath, item);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"{item.Name} export failed.  Reason: {ex.Message}");
+
+                        if (Directory.Exists(primaryBasePath))
+                            Directory.Delete(primaryBasePath, true);
+                        if (Directory.Exists(secondaryBasePath))
+                            Directory.Delete(secondaryBasePath, true);
                     }
                 }
             }

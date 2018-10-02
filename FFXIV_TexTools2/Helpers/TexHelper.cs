@@ -440,48 +440,28 @@ namespace FFXIV_TexTools2.Helpers
 
             if (diffuseTexData != null)
             {
-                try
+                if (tSize > (diffuseTexData.Height * diffuseTexData.Width))
                 {
-                    if (tSize > (diffuseTexData.Height * diffuseTexData.Width))
-                    {
-                        var resized = CreateResizedImage(diffuseTexData.BMPSouceAlpha, width, height);
-                        diffusePixels = GetBytesFromBitmapSource((BitmapSource)resized);
-                    }
-                    else
-                    {
-                        diffusePixels = GetBytesFromBitmapSource(diffuseTexData.BMPSouceAlpha);
-
-                    }
-
+                    var resized = CreateResizedImage(diffuseTexData.BMPSouceAlpha, width, height);
+                    diffusePixels = GetBytesFromBitmapSource((BitmapSource)resized);
                 }
-                catch (Exception ex)
+                else
                 {
-                    Debug.WriteLine(ex.Message);
-                    Debug.WriteLine(ex.StackTrace);
+                    diffusePixels = GetBytesFromBitmapSource(diffuseTexData.BMPSouceAlpha);
                 }
             }
 
             if (specularTexData != null)
             {
-                try
+                if (tSize > (specularTexData.Height * specularTexData.Width))
                 {
-                    if (tSize > (specularTexData.Height * specularTexData.Width))
-                    {
-                        var resized = CreateResizedImage(specularTexData.BMPSouceAlpha, width, height);
-                        specularPixels = GetBytesFromBitmapSource((BitmapSource)resized);
-                    }
-                    else
-                    {
-                        specularPixels = GetBytesFromBitmapSource(specularTexData.BMPSouceAlpha);
-                    }
-
+                    var resized = CreateResizedImage(specularTexData.BMPSouceAlpha, width, height);
+                    specularPixels = GetBytesFromBitmapSource((BitmapSource)resized);
                 }
-                catch (Exception ex)
+                else
                 {
-                    Debug.WriteLine(ex.Message);
-                    Debug.WriteLine(ex.StackTrace);
+                    specularPixels = GetBytesFromBitmapSource(specularTexData.BMPSouceAlpha);
                 }
-
             }
 
             if (normalTexData != null)
