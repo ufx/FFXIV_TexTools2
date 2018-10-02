@@ -91,9 +91,12 @@ namespace FFXIV_TexTools2.Helpers
 
             if (mtrlData.ColorData != null)
             {
-                var colorBitmap = TEX.ColorSetToBitmap(mtrlData.ColorData);
-                var cbmp = SetAlpha(colorBitmap, 255);
-                var colorMap1 = Imaging.CreateBitmapSourceFromHBitmap(cbmp.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+                BitmapSource colorMap1;
+                using (var colorBitmap = TEX.ColorSetToBitmap(mtrlData.ColorData))
+                {
+                    var cbmp = SetAlpha(colorBitmap, 255);
+                    colorMap1 = Imaging.CreateBitmapSourceFromHBitmap(cbmp.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+                }
 
                 int colorSetStride = colorMap1.PixelWidth * (colorMap1.Format.BitsPerPixel / 8);
                 byte[] colorPixels = new byte[colorMap1.PixelHeight * colorSetStride];
