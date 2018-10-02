@@ -532,13 +532,22 @@ namespace FFXIV_TexTools2
 
         private void BatchExport_Click(object sender, RoutedEventArgs e)
         {
-            mViewModel.ModelVM.DisableCompositeView();
-            mViewModel.ModelVM.BubbleExceptions = true;
+            var badItems = new HashSet<string>(new string[]
+            {
+                "Doman Iron Hatchet", "Doman Iron Pickaxe",
+                "Mammon Lucis"
+            });
 
+            mViewModel.ModelVM.DisableCompositeView();
+
+            var counter = 0;
             foreach (var category in mViewModel.Category[0].Children)
             {
                 foreach (var item in category.Children)
                 {
+                    if (badItems.Contains(item.Name))
+                        continue;
+
                     var primaryModelDir = $"m{item.ItemData.PrimaryModelID}v{item.ItemData.PrimaryModelVariant}";
                     var primaryBasePath = Path.Combine(Properties.Settings.Default.Save_Directory, category.Name, primaryModelDir);
                     var primaryExists = Directory.Exists(primaryBasePath);
@@ -556,36 +565,26 @@ namespace FFXIV_TexTools2
                     if (primaryExists && secondaryExists)
                         continue;
 
-                    try
+                    Debug.WriteLine($"Exporting {item.Name}...");
+
+                    mViewModel.TextureVM.UpdateTexture(item.ItemData, category.Name);
+                    mViewModel.ModelVM.UpdateModel(item.ItemData, category.Name);
+
+                    if (!primaryExists)
+                        BatchExportCore(mViewModel.ModelVM, primaryBasePath, item);
+
+                    if (!secondaryExists)
                     {
-                        mViewModel.TextureVM.UpdateTexture(item.ItemData, category.Name);
-                        mViewModel.ModelVM.UpdateModel(item.ItemData, category.Name);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Skipping {item.Name} export.  Reason: {ex.Message}");
-                        continue;
+                        mViewModel.ModelVM.SelectedPart = mViewModel.ModelVM.PartComboBox[1];
+                        BatchExportCore(mViewModel.ModelVM, secondaryBasePath, item);
                     }
 
-                    try
+                    if (counter++ > 100)
                     {
-                        if (!primaryExists)
-                            BatchExportCore(mViewModel.ModelVM, primaryBasePath, item);
-
-                        if (!secondaryExists)
-                        {
-                            mViewModel.ModelVM.SelectedPart = mViewModel.ModelVM.PartComboBox[1];
-                            BatchExportCore(mViewModel.ModelVM, secondaryBasePath, item);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"{item.Name} export failed.  Reason: {ex.Message}");
-
-                        if (Directory.Exists(primaryBasePath))
-                            Directory.Delete(primaryBasePath, true);
-                        if (Directory.Exists(secondaryBasePath))
-                            Directory.Delete(secondaryBasePath, true);
+                        Debug.WriteLine("Waiting for GC.");
+                        GC.Collect();
+                        GC.WaitForPendingFinalizers();
+                        counter = 0;
                     }
                 }
             }
@@ -593,8 +592,6 @@ namespace FFXIV_TexTools2
 
         private void BatchExportCore(ModelViewModel modelViewModel, string basePath, CategoryViewModel item)
         {
-            Debug.WriteLine($"Exporting {item.Name}.");
-
             Directory.CreateDirectory(basePath);
 
             for (var i = 0; i < modelViewModel.MeshList.Count; i++)
