@@ -1085,7 +1085,7 @@ namespace FFXIV_TexTools2.ViewModel
                             if (mtrlData.MaskOffset != 0)
                             {
                                 maskData = TEX.GetTex(mtrlData.MaskOffset, Strings.ItemsDat);
-                                //maskBMP = Imaging.CreateBitmapSourceFromHBitmap(maskData.BMP.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+                                //maskBMP = TexHelper.CreateBitmapSource(maskData.BMP);
                             }
 
                             if (mtrlData.DiffuseOffset != 0)

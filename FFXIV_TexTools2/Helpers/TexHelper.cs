@@ -94,8 +94,8 @@ namespace FFXIV_TexTools2.Helpers
                 BitmapSource colorMap1;
                 using (var colorBitmap = TEX.ColorSetToBitmap(mtrlData.ColorData))
                 {
-                    var cbmp = SetAlpha(colorBitmap, 255);
-                    colorMap1 = Imaging.CreateBitmapSourceFromHBitmap(cbmp.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+                    SetAlpha(colorBitmap, 255);
+                    colorMap1 = CreateBitmapSource(colorBitmap);
                 }
 
                 int colorSetStride = colorMap1.PixelWidth * (colorMap1.Format.BitsPerPixel / 8);
@@ -700,6 +700,23 @@ namespace FFXIV_TexTools2.Helpers
             byte g = (byte)((color.G * amount) + backColor.G * (1 - amount));
             byte b = (byte)((color.B * amount) + backColor.B * (1 - amount));
             return System.Drawing.Color.FromArgb(r, g, b);
+        }
+
+        [DllImport("gdi32.dll")]
+        public static extern bool DeleteObject(IntPtr hObject);
+
+        public static BitmapSource CreateBitmapSource(Bitmap bitmap)
+        {
+            var hbitmap = bitmap.GetHbitmap();
+            try
+            {
+                return Imaging.CreateBitmapSourceFromHBitmap(hbitmap,
+                    IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+            }
+            finally
+            {
+                DeleteObject(hbitmap);
+            }
         }
     }
 }
