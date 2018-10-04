@@ -538,6 +538,7 @@ namespace FFXIV_TexTools2
                 "Mammon Lucis"
             });
 
+            var saveDirectory = "E:\\gtfiles\\models";
             mViewModel.ModelVM.DisableCompositeView();
 
             var counter = 0;
@@ -549,7 +550,7 @@ namespace FFXIV_TexTools2
                         continue;
 
                     var primaryModelDir = $"m{item.ItemData.PrimaryModelID}v{item.ItemData.PrimaryModelVariant}";
-                    var primaryBasePath = Path.Combine(Properties.Settings.Default.Save_Directory, category.Name, primaryModelDir);
+                    var primaryBasePath = Path.Combine(saveDirectory, item.ItemData.ItemCategory, primaryModelDir);
                     var primaryExists = Directory.Exists(primaryBasePath);
 
                     string secondaryModelDir = null;
@@ -558,7 +559,7 @@ namespace FFXIV_TexTools2
                     if (item.ItemData.SecondaryModelID != null)
                     {
                         secondaryModelDir = $"m{item.ItemData.SecondaryModelID}v{item.ItemData.SecondaryModelVariant}";
-                        secondaryBasePath = Path.Combine(Properties.Settings.Default.Save_Directory, category.Name, secondaryModelDir);
+                        secondaryBasePath = Path.Combine(saveDirectory, item.ItemData.ItemCategory, secondaryModelDir);
                         secondaryExists = Directory.Exists(secondaryBasePath);
                     }
 
@@ -571,15 +572,19 @@ namespace FFXIV_TexTools2
                     mViewModel.ModelVM.UpdateModel(item.ItemData, category.Name);
 
                     if (!primaryExists)
-                        BatchExportCore(mViewModel.ModelVM, primaryBasePath, item);
+                    {
+                        var primaryModelKey = item.ItemData.ItemCategory + "/" + primaryModelDir;
+                        BatchExportModel(mViewModel.ModelVM, primaryBasePath, primaryModelKey, item);
+                    }
 
                     if (!secondaryExists)
                     {
                         mViewModel.ModelVM.SelectedPart = mViewModel.ModelVM.PartComboBox[1];
-                        BatchExportCore(mViewModel.ModelVM, secondaryBasePath, item);
+                        var secondaryModelKey = item.ItemData.ItemCategory + "/" + secondaryModelDir;
+                        BatchExportModel(mViewModel.ModelVM, secondaryBasePath, secondaryModelKey, item);
                     }
 
-                    if (counter++ > 100)
+                    if (counter++ > 75)
                     {
                         Debug.WriteLine("Waiting for GC.");
                         GC.Collect();
@@ -590,27 +595,51 @@ namespace FFXIV_TexTools2
             }
         }
 
-        private void BatchExportCore(ModelViewModel modelViewModel, string basePath, CategoryViewModel item)
+        private void BatchExportModel(ModelViewModel modelViewModel, string basePath, string modelKey, CategoryViewModel item)
         {
+            var metadata = new ExportMetadata();
+            metadata.ModelKey = modelKey;
+
             Directory.CreateDirectory(basePath);
 
-            for (var i = 0; i < modelViewModel.MeshList.Count; i++)
-            {
-                var path = $"{basePath}/r{modelViewModel.SelectedRace.ID}_{i}";
-                IO.SaveModel.Save(path, modelViewModel.MeshData[i], modelViewModel.MeshList[i].OBJFileData);
-            }
+            BatchExportSet(metadata, modelViewModel, basePath);
 
             // When the model has both male and female, export information for both.
             var femaleRace = modelViewModel.RaceComboBox.FirstOrDefault(r => r.ID != modelViewModel.SelectedRace.ID && r.Name.Contains("Female"));
             if (femaleRace != null)
             {
                 modelViewModel.SelectedRace = femaleRace;
-                for (var i = 0; i < modelViewModel.MeshList.Count; i++)
-                {
-                    var path = $"{basePath}/r{modelViewModel.SelectedRace.ID}_{i}";
-                    IO.SaveModel.Save(path, modelViewModel.MeshData[i], modelViewModel.MeshList[i].OBJFileData);
-                }
+                BatchExportSet(metadata, modelViewModel, basePath);
             }
+
+            var metadataJson = JsonConvert.SerializeObject(metadata);
+            File.WriteAllText(basePath + "\\metadata.json", metadataJson);
+        }
+
+        private void BatchExportSet(ExportMetadata metadata, ModelViewModel modelViewModel, string basePath)
+        {
+            var set = new ExportSetMetadata();
+            set.RaceGender = modelViewModel.SelectedRace.Name;
+            set.RaceGenderKey = modelViewModel.SelectedRace.ID;
+
+            for (var i = 0; i < modelViewModel.MeshList.Count; i++)
+            {
+                var modelTexData = modelViewModel.MeshData[i];
+                var modelMeshData = modelViewModel.MeshList[i];
+
+                var modelMetadata = new ExportModelMetadata();
+                modelMetadata.Alpha = modelTexData.Alpha != null;
+                modelMetadata.Diffuse = modelTexData.Diffuse != null;
+                modelMetadata.Emissive = modelTexData.Emissive != null;
+                modelMetadata.Normal = modelTexData.Normal != null;
+                modelMetadata.Specular = modelTexData.Specular != null;
+                set.Models.Add(modelMetadata);
+
+                var path = $"{basePath}/r{modelViewModel.SelectedRace.ID}_{i}";
+                IO.SaveModel.Save(path, modelTexData, modelMeshData.OBJFileData);
+            }
+
+            metadata.Sets.Add(set);
         }
     }
 }
