@@ -1798,6 +1798,10 @@ namespace FFXIV_TexTools2.IO
 
                                 if (itemCheck != 0)
                                 {
+                                    br.BaseStream.Seek(-6, SeekOrigin.Current);
+                                    item.PrimaryModelKey = Quad.Read(br.ReadBytes(8), 0);
+                                    br.BaseStream.Seek(-2, SeekOrigin.Current);
+
                                     int weaponCheck = textureDetails[1];
                                     if (weaponCheck == 0)
                                     {
@@ -1816,6 +1820,10 @@ namespace FFXIV_TexTools2.IO
                                     int secondaryCheck = textureDetails[3];
                                     if (secondaryCheck != 0)
                                     {
+                                        br.BaseStream.Seek(-6, SeekOrigin.Current);
+                                        item.SecondaryModelKey = Quad.Read(br.ReadBytes(8), 0);
+                                        br.BaseStream.Seek(-2, SeekOrigin.Current);
+
                                         hasSecondary = true;
                                         weaponCheck = textureDetails[1];
                                         if (weaponCheck == 0)

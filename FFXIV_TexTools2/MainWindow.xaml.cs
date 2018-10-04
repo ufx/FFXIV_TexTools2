@@ -535,7 +535,8 @@ namespace FFXIV_TexTools2
             var badItems = new HashSet<string>(new string[]
             {
                 "Doman Iron Hatchet", "Doman Iron Pickaxe",
-                "Mammon Lucis"
+                "Mammon Lucis", "Kurdalegon Lucis", "Rauni Lucis",
+                "Kurdalegon Supra", "Rauni Supra"
             });
 
             var saveDirectory = "E:\\gtfiles\\models";
@@ -549,7 +550,7 @@ namespace FFXIV_TexTools2
                     if (badItems.Contains(item.Name))
                         continue;
 
-                    var primaryModelDir = $"m{item.ItemData.PrimaryModelID}v{item.ItemData.PrimaryModelVariant}";
+                    var primaryModelDir = item.ItemData.PrimaryModelKey.ToString().Replace(", ", "-");
                     var primaryBasePath = Path.Combine(saveDirectory, item.ItemData.ItemCategory, primaryModelDir);
                     var primaryExists = Directory.Exists(primaryBasePath);
 
@@ -558,7 +559,7 @@ namespace FFXIV_TexTools2
                     var secondaryExists = true;
                     if (item.ItemData.SecondaryModelID != null)
                     {
-                        secondaryModelDir = $"m{item.ItemData.SecondaryModelID}v{item.ItemData.SecondaryModelVariant}";
+                        secondaryModelDir = item.ItemData.SecondaryModelKey.ToString().Replace(", ", "-");
                         secondaryBasePath = Path.Combine(saveDirectory, item.ItemData.ItemCategory, secondaryModelDir);
                         secondaryExists = Directory.Exists(secondaryBasePath);
                     }
@@ -584,7 +585,7 @@ namespace FFXIV_TexTools2
                         BatchExportModel(mViewModel.ModelVM, secondaryBasePath, secondaryModelKey, item);
                     }
 
-                    if (counter++ > 75)
+                    if (counter++ > 55)
                     {
                         Debug.WriteLine("Waiting for GC.");
                         GC.Collect();
@@ -635,7 +636,7 @@ namespace FFXIV_TexTools2
                 modelMetadata.Specular = modelTexData.Specular != null;
                 set.Models.Add(modelMetadata);
 
-                var path = $"{basePath}/r{modelViewModel.SelectedRace.ID}_{i}";
+                var path = $"{basePath}/{modelViewModel.SelectedRace.ID}_{i}";
                 IO.SaveModel.Save(path, modelTexData, modelMeshData.OBJFileData);
             }
 

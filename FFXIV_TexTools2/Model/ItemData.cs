@@ -38,6 +38,11 @@ namespace FFXIV_TexTools2.Model
         public string ItemSubCategory { get; set; }
 
         /// <summary>
+        /// The entire primary model key, including variants and body values
+        /// </summary>
+        public Quad PrimaryModelKey { get; set; }
+
+        /// <summary>
         /// The ID from the primary model data
         /// </summary>
         public string PrimaryModelID { get; set; }
@@ -51,6 +56,11 @@ namespace FFXIV_TexTools2.Model
         /// the variant from the primary model data
         /// </summary>
         public string PrimaryModelVariant { get; set; }
+
+        /// <summary>
+        /// The entire secondary model key, including variants and body values
+        /// </summary>
+        public Quad SecondaryModelKey { get; set; }
 
         /// <summary>
         /// The ID from the secondary model data
