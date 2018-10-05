@@ -168,6 +168,7 @@
     <Compile Include="Model\ModPackInfo.cs" />
     <Compile Include="Model\ModPackItems.cs" />
     <Compile Include="Model\ModPackJson.cs" />
+    <Compile Include="Model\Quad.cs" />
     <Compile Include="Model\TreeNode.cs" />
     <Compile Include="Model\ModelMeshData.cs" />
     <Compile Include="FileTypes\ModelContainers\MeshDataInfo.cs" />
