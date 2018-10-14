@@ -539,8 +539,9 @@ namespace FFXIV_TexTools2
                 "Kurdalegon Supra", "Rauni Supra"
             });
 
-            var saveDirectory = "E:\\gtfiles\\models";
             mViewModel.ModelVM.DisableCompositeView();
+            var saveDirectory = "E:\\gtfiles2\\models";
+            var hashes = new ExportHashRepository(Path.Combine(saveDirectory, "repo"));
 
             var counter = 0;
             foreach (var category in mViewModel.Category[0].Children)
@@ -550,9 +551,12 @@ namespace FFXIV_TexTools2
                     if (badItems.Contains(item.Name))
                         continue;
 
+                    var categoryPath = Path.Combine(saveDirectory, item.ItemData.ItemCategory);
+                    Directory.CreateDirectory(categoryPath);
+
                     var primaryModelDir = item.ItemData.PrimaryModelKey.ToString().Replace(", ", "-");
-                    var primaryBasePath = Path.Combine(saveDirectory, item.ItemData.ItemCategory, primaryModelDir);
-                    var primaryExists = Directory.Exists(primaryBasePath);
+                    var primaryBasePath = Path.Combine(categoryPath, primaryModelDir);
+                    var primaryExists = File.Exists(primaryBasePath + ".json");
 
                     string secondaryModelDir = null;
                     string secondaryBasePath = null;
@@ -560,8 +564,8 @@ namespace FFXIV_TexTools2
                     if (item.ItemData.SecondaryModelID != null)
                     {
                         secondaryModelDir = item.ItemData.SecondaryModelKey.ToString().Replace(", ", "-");
-                        secondaryBasePath = Path.Combine(saveDirectory, item.ItemData.ItemCategory, secondaryModelDir);
-                        secondaryExists = Directory.Exists(secondaryBasePath);
+                        secondaryBasePath = Path.Combine(categoryPath, secondaryModelDir);
+                        secondaryExists = File.Exists(secondaryBasePath + ".json");
                     }
 
                     if (primaryExists && secondaryExists)
@@ -575,17 +579,17 @@ namespace FFXIV_TexTools2
                     if (!primaryExists)
                     {
                         var primaryModelKey = item.ItemData.ItemCategory + "/" + primaryModelDir;
-                        BatchExportModel(mViewModel.ModelVM, primaryBasePath, primaryModelKey, item);
+                        BatchExportModel(mViewModel.ModelVM, hashes, primaryBasePath, primaryModelKey, item);
                     }
 
                     if (!secondaryExists)
                     {
                         mViewModel.ModelVM.SelectedPart = mViewModel.ModelVM.PartComboBox[1];
                         var secondaryModelKey = item.ItemData.ItemCategory + "/" + secondaryModelDir;
-                        BatchExportModel(mViewModel.ModelVM, secondaryBasePath, secondaryModelKey, item);
+                        BatchExportModel(mViewModel.ModelVM, hashes, secondaryBasePath, secondaryModelKey, item);
                     }
 
-                    if (counter++ > 55)
+                    if (counter++ > 15)
                     {
                         Debug.WriteLine("Waiting for GC.");
                         GC.Collect();
@@ -596,32 +600,27 @@ namespace FFXIV_TexTools2
             }
         }
 
-        private void BatchExportModel(ModelViewModel modelViewModel, string basePath, string modelKey, CategoryViewModel item)
+        private void BatchExportModel(ModelViewModel modelViewModel, ExportHashRepository hashes, string path, string modelKey, CategoryViewModel item)
         {
             var metadata = new ExportMetadata();
-            metadata.ModelKey = modelKey;
 
-            Directory.CreateDirectory(basePath);
+            BatchExportSet(metadata, hashes, modelViewModel);
 
-            BatchExportSet(metadata, modelViewModel, basePath);
-
-            // When the model has both male and female, export information for both.
-            var femaleRace = modelViewModel.RaceComboBox.FirstOrDefault(r => r.ID != modelViewModel.SelectedRace.ID && r.Name.Contains("Female"));
-            if (femaleRace != null)
+            var remainingRaces = modelViewModel.RaceComboBox.Where(r => r.ID != modelViewModel.SelectedRace.ID).ToArray();
+            foreach (var race in remainingRaces)
             {
-                modelViewModel.SelectedRace = femaleRace;
-                BatchExportSet(metadata, modelViewModel, basePath);
+                modelViewModel.SelectedRace = race;
+                BatchExportSet(metadata, hashes, modelViewModel);
             }
 
             var metadataJson = JsonConvert.SerializeObject(metadata);
-            File.WriteAllText(basePath + "\\metadata.json", metadataJson);
+            File.WriteAllText(path + ".json", metadataJson);
         }
 
-        private void BatchExportSet(ExportMetadata metadata, ModelViewModel modelViewModel, string basePath)
+        private void BatchExportSet(ExportMetadata metadata, ExportHashRepository hashes, ModelViewModel modelViewModel)
         {
             var set = new ExportSetMetadata();
             set.RaceGender = modelViewModel.SelectedRace.Name;
-            set.RaceGenderKey = modelViewModel.SelectedRace.ID;
 
             for (var i = 0; i < modelViewModel.MeshList.Count; i++)
             {
@@ -629,15 +628,16 @@ namespace FFXIV_TexTools2
                 var modelMeshData = modelViewModel.MeshList[i];
 
                 var modelMetadata = new ExportModelMetadata();
-                modelMetadata.Alpha = modelTexData.Alpha != null;
-                modelMetadata.Diffuse = modelTexData.Diffuse != null;
-                modelMetadata.Emissive = modelTexData.Emissive != null;
-                modelMetadata.Normal = modelTexData.Normal != null;
-                modelMetadata.Specular = modelTexData.Specular != null;
-                set.Models.Add(modelMetadata);
+                var objString = string.Join("\r\n", modelMeshData.OBJFileData);
+                var objBytes = System.Text.Encoding.ASCII.GetBytes(objString);
+                modelMetadata.Obj = hashes.Write(".obj", objBytes);
 
-                var path = $"{basePath}/{modelViewModel.SelectedRace.ID}_{i}";
-                IO.SaveModel.Save(path, modelTexData, modelMeshData.OBJFileData);
+                modelMetadata.Alpha = hashes.Write(modelTexData.Alpha);
+                modelMetadata.Diffuse = hashes.Write(modelTexData.Diffuse);
+                modelMetadata.Emissive = hashes.Write(modelTexData.Emissive);
+                modelMetadata.Normal = hashes.Write(modelTexData.Normal);
+                modelMetadata.Specular = hashes.Write(modelTexData.Specular);
+                set.Models.Add(modelMetadata);
             }
 
             metadata.Sets.Add(set);
