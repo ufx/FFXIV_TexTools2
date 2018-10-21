@@ -65,14 +65,17 @@ namespace FFXIV_TexTools2.Model
 
     public class ExportMetadata
     {
+        [JsonProperty("name")]
+        public string Name;
+
         [JsonProperty("sets")]
         public List<ExportSetMetadata> Sets = new List<ExportSetMetadata>();
     }
 
     public class ExportSetMetadata
     {
-        [JsonProperty("raceGender")]
-        public string RaceGender; // e.g. Hyur Midlander Female
+        [JsonProperty("name")]
+        public string Name; // e.g. Hyur Midlander Female
 
         [JsonProperty("models")]
         public List<ExportModelMetadata> Models = new List<ExportModelMetadata>();

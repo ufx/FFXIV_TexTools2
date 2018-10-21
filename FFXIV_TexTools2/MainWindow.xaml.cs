@@ -530,79 +530,144 @@ namespace FFXIV_TexTools2
             customize.Show();
         }
 
+        private CategoryViewModel FindCategory(string name, IEnumerable<CategoryViewModel> categories)
+        {
+            foreach (var category in categories)
+            {
+                if (category.Name == name)
+                    return category;
+
+                var childMatch = FindCategory(name, category.Children);
+                if (childMatch != null)
+                    return childMatch;
+            }
+
+            return null;
+        }
+
         private void BatchExport_Click(object sender, RoutedEventArgs e)
         {
-            var badItems = new HashSet<string>(new string[]
+            mViewModel.ModelVM.DisableCompositeView();
+            var saveDirectory = "E:\\gtfiles\\models";
+            var hashes = new ExportHashRepository(Path.Combine(saveDirectory, "repo"));
+
+            var counter = 0;
+
+            // Gear
+            var badGear = new HashSet<string>(new[]
             {
                 "Doman Iron Hatchet", "Doman Iron Pickaxe",
                 "Mammon Lucis", "Kurdalegon Lucis", "Rauni Lucis",
                 "Kurdalegon Supra", "Rauni Supra"
             });
 
-            mViewModel.ModelVM.DisableCompositeView();
-            var saveDirectory = "E:\\gtfiles2\\models";
-            var hashes = new ExportHashRepository(Path.Combine(saveDirectory, "repo"));
+            var gear = FindCategory("Gear", mViewModel.Category).Children
+                .SelectMany(c => c.Children)
+                .Where(i => !badGear.Contains(i.Name));
 
-            var counter = 0;
-            foreach (var category in mViewModel.Category[0].Children)
+            foreach (var item in gear)
             {
-                foreach (var item in category.Children)
+                if (BatchExportGear(hashes, item, saveDirectory) && counter++ > 15)
                 {
-                    if (badItems.Contains(item.Name))
-                        continue;
-
-                    var categoryPath = Path.Combine(saveDirectory, item.ItemData.ItemCategory);
-                    Directory.CreateDirectory(categoryPath);
-
-                    var primaryModelDir = item.ItemData.PrimaryModelKey.ToString().Replace(", ", "-");
-                    var primaryBasePath = Path.Combine(categoryPath, primaryModelDir);
-                    var primaryExists = File.Exists(primaryBasePath + ".json");
-
-                    string secondaryModelDir = null;
-                    string secondaryBasePath = null;
-                    var secondaryExists = true;
-                    if (item.ItemData.SecondaryModelID != null)
-                    {
-                        secondaryModelDir = item.ItemData.SecondaryModelKey.ToString().Replace(", ", "-");
-                        secondaryBasePath = Path.Combine(categoryPath, secondaryModelDir);
-                        secondaryExists = File.Exists(secondaryBasePath + ".json");
-                    }
-
-                    if (primaryExists && secondaryExists)
-                        continue;
-
-                    Debug.WriteLine($"Exporting {item.Name}...");
-
-                    mViewModel.TextureVM.UpdateTexture(item.ItemData, category.Name);
-                    mViewModel.ModelVM.UpdateModel(item.ItemData, category.Name);
-
-                    if (!primaryExists)
-                    {
-                        var primaryModelKey = item.ItemData.ItemCategory + "/" + primaryModelDir;
-                        BatchExportModel(mViewModel.ModelVM, hashes, primaryBasePath, primaryModelKey, item);
-                    }
-
-                    if (!secondaryExists)
-                    {
-                        mViewModel.ModelVM.SelectedPart = mViewModel.ModelVM.PartComboBox[1];
-                        var secondaryModelKey = item.ItemData.ItemCategory + "/" + secondaryModelDir;
-                        BatchExportModel(mViewModel.ModelVM, hashes, secondaryBasePath, secondaryModelKey, item);
-                    }
-
-                    if (counter++ > 15)
-                    {
-                        Debug.WriteLine("Waiting for GC.");
-                        GC.Collect();
-                        GC.WaitForPendingFinalizers();
-                        counter = 0;
-                    }
+                    Debug.WriteLine("Waiting for GC.");
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    counter = 0;
                 }
             }
+
+            // Minions
+            var badMinions = new HashSet<string>(new[]
+            {
+                "Korpokkur Kid",
+                "Magic Bucket"
+            });
+
+            var minions = FindCategory("Minions", mViewModel.Category).Children
+                .Where(m => !badMinions.Contains(m.Name));
+
+            foreach (var minion in minions)
+                BatchExportPrimary(hashes, minion, saveDirectory, "minion");
+
+            // Mounts
+            var badMounts = new HashSet<string>(new[]
+            {
+                "Korpokkur Kolossus"
+            });
+
+            var mounts = FindCategory("Mounts", mViewModel.Category).Children
+                .Where(m => !badMounts.Contains(m.Name));
+
+            foreach (var mount in mounts)
+                BatchExportPrimary(hashes, mount, saveDirectory, "mount");
+        }
+
+        private void BatchExportPrimary(ExportHashRepository hashes, CategoryViewModel item, string saveDirectory, string type)
+        {
+            var categoryPath = Path.Combine(saveDirectory, type);
+            Directory.CreateDirectory(categoryPath);
+
+            var itemData = item.ItemData;
+            var modelFile = string.Format("{0}-{1}-{2}",
+                int.Parse(itemData.PrimaryModelID), int.Parse(itemData.PrimaryModelBody), int.Parse(itemData.PrimaryModelVariant));
+            var basePath = Path.Combine(categoryPath, modelFile);
+            if (File.Exists(basePath + ".json"))
+                return;
+
+            Debug.WriteLine($"Exporting {type} {item.Name}...");
+
+            mViewModel.TextureVM.UpdateTexture(item.ItemData, item.Parent.Name);
+            mViewModel.ModelVM.UpdateModel(item.ItemData, item.Parent.Name);
+            BatchExportModel(mViewModel.ModelVM, hashes, basePath, type + "/" + modelFile, item);
+        }
+
+        private bool BatchExportGear(ExportHashRepository hashes, CategoryViewModel item, string saveDirectory)
+        {
+            var categoryPath = Path.Combine(saveDirectory, item.ItemData.ItemCategory);
+            Directory.CreateDirectory(categoryPath);
+
+            var primaryModelDir = item.ItemData.PrimaryModelKey.ToString().Replace(", ", "-");
+            var primaryBasePath = Path.Combine(categoryPath, primaryModelDir);
+            var primaryExists = File.Exists(primaryBasePath + ".json");
+
+            string secondaryModelDir = null;
+            string secondaryBasePath = null;
+            var secondaryExists = true;
+            if (item.ItemData.SecondaryModelID != null)
+            {
+                secondaryModelDir = item.ItemData.SecondaryModelKey.ToString().Replace(", ", "-");
+                secondaryBasePath = Path.Combine(categoryPath, secondaryModelDir);
+                secondaryExists = File.Exists(secondaryBasePath + ".json");
+            }
+
+            if (primaryExists && secondaryExists)
+                return false;
+
+            Debug.WriteLine($"Exporting item {item.Name}...");
+
+            mViewModel.TextureVM.UpdateTexture(item.ItemData, item.Parent.Name);
+            mViewModel.ModelVM.UpdateModel(item.ItemData, item.Parent.Name);
+
+            if (!primaryExists)
+            {
+                var primaryModelKey = item.ItemData.ItemCategory + "/" + primaryModelDir;
+                BatchExportModel(mViewModel.ModelVM, hashes, primaryBasePath, primaryModelKey, item);
+            }
+
+            if (!secondaryExists)
+            {
+                mViewModel.ModelVM.SelectedPart = mViewModel.ModelVM.PartComboBox[1];
+                var secondaryModelKey = item.ItemData.ItemCategory + "/" + secondaryModelDir;
+                BatchExportModel(mViewModel.ModelVM, hashes, secondaryBasePath, secondaryModelKey, item);
+            }
+
+            return true;
         }
 
         private void BatchExportModel(ModelViewModel modelViewModel, ExportHashRepository hashes, string path, string modelKey, CategoryViewModel item)
         {
             var metadata = new ExportMetadata();
+            metadata.Name = item.Name;
 
             BatchExportSet(metadata, hashes, modelViewModel);
 
@@ -620,7 +685,7 @@ namespace FFXIV_TexTools2
         private void BatchExportSet(ExportMetadata metadata, ExportHashRepository hashes, ModelViewModel modelViewModel)
         {
             var set = new ExportSetMetadata();
-            set.RaceGender = modelViewModel.SelectedRace.Name;
+            set.Name = modelViewModel.SelectedRace.Name;
 
             for (var i = 0; i < modelViewModel.MeshList.Count; i++)
             {
